@@ -18,7 +18,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def multi_threaded_requets(from_x, from_y, to_x, to_y, dry_run=False, verbose=True):
+def multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run=False, verbose=True):
     """
     Get multiple travel distances from Geodan API
     by calling single_request.single_request using multiple threads

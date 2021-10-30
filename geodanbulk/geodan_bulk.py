@@ -3,18 +3,63 @@ import os
 import pandas as pd
 import numpy as np
 
+from math import radians, cos, sin, asin, sqrt
 from csv import writer
-from geodanbulk.multi_threaded_requests import multi_threaded_requets, MAX_CONCURRENT_REQUESTS
+from geodanbulk.multi_threaded_requests import multi_threaded_requests, MAX_CONCURRENT_REQUESTS
 
 
-def get_pairs():
-    """Return pd.DataFrame with postcode pairs and their lon/lat
-    *_from -> *_to
+
+def haversine(lon1, lat1, lon2, lat2):
     """
-    pc4 = pd.read_csv('../data/pc4.csv', usecols=['postcode','latitude','longitude'])
+    Calculate the great circle distance in kilometers between two points 
+    on the earth (specified in decimal degrees)
+    https://en.wikipedia.org/wiki/Haversine_formula
+    """
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles. Determines return value units.
+    return c * r
+
+
+def get_pairs(file, pc='postcode', x= 'longitude', y='latitude', max_haversine_distance=10000):
+    """Generates postcode pairs from postcode table:
+
+    1. Read postcode table with longitude and latitude
+    2. Generates cross product with all pairs
+    3. Make subselect based on maximal haversine distance between pairs
+
+    NOTE: Geodan API use x/y as lon/lat
+    Args:
+        file (str): file containing postcode, longitude and latitude
+        pc (str, optional): Postcode column name. Defaults to 'postcode'.
+        x (str, optional): longitude column name. Defaults to 'longitude'.
+        y (str, optional): latitude column name. Defaults to 'latitude'.
+        max_haversine_distance (int, optional): Maximal haversine distance between pairs. Defaults to 10000.
+
+    Returns:
+        pd.DataFrame: DataFrame with columns postcode_from, x_from, y_from, postcode_to, x_to, y_to
+    """    
+    
+    data = pd.read_csv(file, usecols=[pc, x, y])
+    data.columns = ['postcode', 'x', 'y']
+
     # cross product
-    pc4['key'] = 1
-    return pc4.merge(pc4, on='key', suffixes=('_from', '_to')).drop('key', axis=1)
+    data['key'] = 1
+    data = data.merge(data, on='key', suffixes=('_from', '_to')).drop('key', axis=1)
+
+    data['haversine_distance'] = data.apply(haversine,
+                                              lon1='x_from',
+                                              lat1='y_from',
+                                              lon2='x_to',
+                                              lat2='y_to', axis=1)
+
+    return data[data['haversine_distance'] <= max_haversine_distance]
 
 
 def geodan_bulk(data, output_file, dry_run=True, verbose=True):
@@ -28,7 +73,7 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
     :return: nothing output written to file
     """
 
-    header = ['from_pc5', 'to_pc5', 'travel_distance', 'travel_time']
+    header = ['postcode_from', 'postcode_to', 'travel_distance', 'travel_time']
 
     # open file if exists overwrite and add header
     with open(output_file, 'w', newline='') as file_object:
@@ -43,15 +88,15 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
 
         for chunk in np.array_split(data, MAX_CONCURRENT_REQUESTS):
 
-            from_pc5 = chunk['from_pc5']
-            from_x = chunk['from_x']
-            from_y = chunk['from_y']
-            to_pc5 = chunk['to_pc5']
-            to_x = chunk['to_x']
-            to_y = chunk['to_y']
+            from_pc5 = chunk['postcode_from']
+            from_x = chunk['x_from']
+            from_y = chunk['y_from']
+            to_pc5 = chunk['postcode_to']
+            to_x = chunk['x_to']
+            to_y = chunk['y_to']
 
             if len(to_x) > 1:
-                travel_distances = multi_threaded_requets(from_x, from_y, to_x, to_y, dry_run, verbose)
+                travel_distances = multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run, verbose)
                 for i, travel_distance in enumerate(travel_distances):
                     row = [from_pc5[i], to_pc5[i], travel_distance['distance'], travel_distance['time']]
                     writer_object.writerow(row)
@@ -68,7 +113,8 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
 if __name__ == '__main__':
 
     print(os.getcwd())
-    data = get_pairs()
+    file = '../data/pc4.csv'
+    data = get_pairs(file)
     output_file = 'data/travel_distances.csv'
 
     geodan_bulk(data, output_file, dry_run=True, verbose=True)
