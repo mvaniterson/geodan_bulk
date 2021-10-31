@@ -57,6 +57,6 @@ if __name__ == '__main__':
     to_y = ncalls*[52.3733862]
     to_x = ncalls*[4.8940639]
 
-    results = multi_threaded_requets(from_x, from_y, to_x, to_y)
+    results = multi_threaded_requests(from_x, from_y, to_x, to_y)
 
     print(results)

@@ -69,8 +69,8 @@ def single_request(from_x, from_y, to_x, to_y, dry_run=True, verbose=True):
 
 if __name__ == '__main__':
 
-    from_y, from_x = (52.3729762,4.9039565)
-    to_y, to_x = (52.3733862,4.8940639)
+    from_y, from_x = (52.3729762, 4.9039565)
+    to_y, to_x = (52.3733862, 4.8940639)
     resp = single_request(from_x, from_y, to_x, to_y, dry_run=False, verbose=True)
 
     print(resp)

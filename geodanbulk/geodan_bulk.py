@@ -1,3 +1,7 @@
+import sys
+# use to run using vscode
+sys.path.append("C:/Users/mvite/geodan_bulk")
+
 import timeit
 import os
 import pandas as pd
@@ -6,7 +10,6 @@ import numpy as np
 from math import radians, cos, sin, asin, sqrt
 from csv import writer
 from geodanbulk.multi_threaded_requests import multi_threaded_requests, MAX_CONCURRENT_REQUESTS
-
 
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -46,18 +49,20 @@ def get_pairs(file, pc='postcode', x= 'longitude', y='latitude', max_haversine_d
         pd.DataFrame: DataFrame with columns postcode_from, x_from, y_from, postcode_to, x_to, y_to
     """    
     
-    data = pd.read_csv(file, usecols=[pc, x, y])
+    data = pd.read_csv(file, usecols=[pc, x, y], 
+                       nrows=5) 
     data.columns = ['postcode', 'x', 'y']
 
     # cross product
     data['key'] = 1
     data = data.merge(data, on='key', suffixes=('_from', '_to')).drop('key', axis=1)
 
-    data['haversine_distance'] = data.apply(haversine,
-                                              lon1='x_from',
-                                              lat1='y_from',
-                                              lon2='x_to',
-                                              lat2='y_to', axis=1)
+    data['haversine_distance'] = data.apply(
+        lambda x: haversine(lon1=x['x_from'],
+                            lat1=x['y_from'],
+                            lon2=x['x_to'],
+                            lat2=x['y_to'])
+                            , axis=1)
 
     return data[data['haversine_distance'] <= max_haversine_distance]
 
@@ -73,7 +78,8 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
     :return: nothing output written to file
     """
 
-    header = ['postcode_from', 'postcode_to', 'travel_distance', 'travel_time']
+    header = ['postcode_from', 'postcode_to',
+              'haversine_distance', 'travel_distance', 'travel_time']
 
     # open file if exists overwrite and add header
     with open(output_file, 'w', newline='') as file_object:
@@ -87,20 +93,23 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
         writer_object = writer(file_object)
 
         for chunk in np.array_split(data, MAX_CONCURRENT_REQUESTS):
-
-            from_pc5 = chunk['postcode_from']
+            
+            from_pc = chunk['postcode_from']
             from_x = chunk['x_from']
             from_y = chunk['y_from']
-            to_pc5 = chunk['postcode_to']
+            to_pc = chunk['postcode_to']
             to_x = chunk['x_to']
             to_y = chunk['y_to']
 
-            if len(to_x) > 1:
-                travel_distances = multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run, verbose)
-                for i, travel_distance in enumerate(travel_distances):
-                    row = [from_pc5[i], to_pc5[i], travel_distance['distance'], travel_distance['time']]
-                    writer_object.writerow(row)
+            # ASUME: input order is output order?
+            distances = multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run, verbose)
+            
+            chunk['travel_distance'] = [d['distance'] for d in distances]
+            chunk['travel_time'] = [d['time'] for d in distances]
 
+            for _, row in chunk[header].iterrows():
+                writer_object.writerow(row.values.tolist())
+            
         file_object.close()
 
     stop = timeit.default_timer()
@@ -113,8 +122,12 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
 if __name__ == '__main__':
 
     print(os.getcwd())
-    file = '../data/pc4.csv'
-    data = get_pairs(file)
+    print(sys.path)
+
+    input_file = 'data/pc4.csv'
     output_file = 'data/travel_distances.csv'
 
+    data = get_pairs(input_file)
+    
+    print(data.head())
     geodan_bulk(data, output_file, dry_run=True, verbose=True)
