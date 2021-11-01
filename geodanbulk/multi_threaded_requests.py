@@ -44,8 +44,9 @@ def multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run=False, verbose=T
             try:
                 result = future.result(timeout=TIMEOUT)
                 results.append(result)
-            except Exception:
-                results.append(None)
+            except Exception as error:
+                print(error)
+                results.append({'distance': -999.999, 'time': -999.999})
     return results
 
 

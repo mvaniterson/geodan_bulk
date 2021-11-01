@@ -47,7 +47,7 @@ def single_request(from_x, from_y, to_x, to_y, dry_run=True, verbose=True):
     if dry_run:
         if verbose:
             print('dry run')
-        response = {'distance': -999, 'time': -999}
+        response = {'distance': -999.999, 'time': -999.999}
     else:
         r = requests.get(url, params)
         if verbose:
@@ -58,6 +58,7 @@ def single_request(from_x, from_y, to_x, to_y, dry_run=True, verbose=True):
                 print(f'response time: {r.elapsed.total_seconds()}')
                 print('full response')
                 print(json.dumps(r.json(), indent=4, sort_keys=True))
+
             response = {'distance': r.json()['features'][0]['properties']['distance'],
                         'time': r.json()['features'][0]['properties']['time']
                         }
