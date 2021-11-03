@@ -87,6 +87,7 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
             if (i % PROGRESS_EVERY_N) == 0 and i > 0:
                 stop = timeit.default_timer()
                 print(f'iteration: ({i}/{niterations}), {int(nrequests/(stop - start))} requests/second')
+                start = timeit.default_timer()
                 nrequests = 0
 
             from_x = from_pc['x']
