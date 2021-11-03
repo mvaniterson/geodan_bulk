@@ -16,13 +16,20 @@ data = get_pairs(input_file)
 geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=False)`
 ``` 
 
-Table: Obtain travel distances for pc4 (4699) pairs that are maximally separated with a certain distance:|
+*Table 1*: Obtain travel distances for pc4 (4699 distinct) pairs that are maximally separated with a certain distance:
 
 | Number of pairs | distance (km) | Estimated execution time |
 |--------|--------|--------|
-| 246854 | 10 | |
-|  80533 |  5 | |
-|   8125 |  1 | |
+| 246854 | 10 | 5h |
+|  80533 |  5 | 1.5h |
+
+
+*Table 2*: Obtain travel distances for pc5 (333180 distinct) pairs that are maximally separated with a certain distance:
+
+| Number of pairs | distance (km) | Estimated execution time |
+|--------|--------|--------|
+| 333180 | 2 | >6h |
+
 
 
 
