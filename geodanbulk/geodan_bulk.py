@@ -26,12 +26,8 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 
-def get_pairs(file, pc='postcode', x= 'longitude', y='latitude', max_haversine_distance=10000):
-    """Generates postcode pairs from postcode table:
-
-    1. Read postcode table with longitude and latitude
-    2. Generates cross product with all pairs
-    3. Make subselect based on maximal haversine distance between pairs
+def get_data(file, pc='postcode', x= 'longitude', y='latitude'):
+    """Prepare data
 
     NOTE: Geodan API use x/y as lon/lat
     Args:
@@ -39,10 +35,9 @@ def get_pairs(file, pc='postcode', x= 'longitude', y='latitude', max_haversine_d
         pc (str, optional): Postcode column name. Defaults to 'postcode'.
         x (str, optional): longitude column name. Defaults to 'longitude' i.e. 4.9 .
         y (str, optional): latitude column name. Defaults to 'latitude', i.e. 52.3 .
-        max_haversine_distance (int, optional): Maximal haversine distance between pairs. Defaults to 10000.
 
     Returns:
-        pd.DataFrame: DataFrame with columns postcode_from, x_from, y_from, postcode_to, x_to, y_to
+        pd.DataFrame: DataFrame
     """    
 
     dtypes = {pc: str, x: np.float64, y: np.float64}
@@ -127,6 +122,6 @@ if __name__ == '__main__':
     input_file = '../data/pc4.csv'
     output_file = '../data/travel_distances.csv'
 
-    data = get_pairs(input_file)
+    data = get_data(input_file)
 
-    geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=False)
+    geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=False, verbose=False)
