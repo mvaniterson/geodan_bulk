@@ -10,9 +10,11 @@ Make bulk requests to the Geodan Routing API to obtain travel distances between 
 For example to obtain all travel distances between PC4 pairs that are maximally 5km separate run: 
 
 ```python
+from geodanbulk import get_data, geodan_bulk
+
 input_file = '../data/pc4.csv'
 output_file = '../data/travel_distances.csv'
-data = get_pairs(input_file)
+data = get_data(input_file)
 geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=False)`
 ``` 
 
