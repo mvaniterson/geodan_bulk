@@ -53,12 +53,13 @@ def get_pairs(file, pc='postcode', x= 'longitude', y='latitude', max_haversine_d
     return data
 
 
-def geodan_bulk(data, output_file, dry_run=True, verbose=True):
+def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verbose=True):
     """
     Construct full travel distance matrix written directly to a file
 
     :param data: DataFrame
     :param output_file:
+    :param max_haversine_distance: default 10km
     :param dry_run: default True
     :param verbose: default True
     :return: nothing output written to file
@@ -78,13 +79,19 @@ def geodan_bulk(data, output_file, dry_run=True, verbose=True):
     with open(output_file, 'a', newline='') as file_object:
         writer_object = writer(file_object)
 
-        for _, from_pc in data[:3].iterrows():
+        for _, from_pc in data.iterrows():
             from_x = MAX_CONCURRENT_REQUESTS*[from_pc['x']]
             from_y = MAX_CONCURRENT_REQUESTS*[from_pc['y']]
 
-            for chunk in np.array_split(data, 1 + data.shape[0]//MAX_CONCURRENT_REQUESTS):
-                to_x = chunk['x']
-                to_y = chunk['y']
+            haversine_distances = data.apply(lambda x: haversine(lon1=from_pc['x'], lat1=from_pc['y'],
+                                                                 lon2=x['x'], lat2=x['y']),
+                                             axis=1)
+
+            within_distance = haversine_distances <= max_haversine_distance
+
+            for chunk in np.array_split(data[within_distance], 1 + sum(within_distance)//MAX_CONCURRENT_REQUESTS):
+                to_x = chunk['x'].values
+                to_y = chunk['y'].values
 
                 # CHECK: input order is output order?
                 distances = multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run, verbose)
@@ -113,4 +120,4 @@ if __name__ == '__main__':
 
     data = get_pairs(input_file)
 
-    geodan_bulk(data, output_file, dry_run=False, verbose=False)
+    geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=False, verbose=False)
