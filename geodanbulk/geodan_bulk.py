@@ -69,7 +69,6 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
     header = ['postcode_from', 'postcode_to',
               'travel_distance', 'travel_time']
 
-
     # open file if exists overwrite and add header
     with open(output_file, 'w', newline='') as file_object:
         writer_object = writer(file_object)
@@ -77,7 +76,8 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
 
     start_total = timeit.default_timer()
     start = timeit.default_timer()
-
+    nrequests = 0
+    niterations = data.shape[0]
     # open file append rows
     with open(output_file, 'a', newline='') as file_object:
         writer_object = writer(file_object)
@@ -86,23 +86,22 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
 
             if (i % PROGRESS_EVERY_N) == 0 and i > 0:
                 stop = timeit.default_timer()
-                print(f"iteration {i-PROGRESS_EVERY_N} - {i} took {stop - start:.4f} seconds.")
-                start = timeit.default_timer()
+                print(f'iteration: ({i}/{niterations}), {int(nrequests/(stop - start))} requests/second')
+                nrequests = 0
 
-            from_x = MAX_CONCURRENT_REQUESTS*[from_pc['x']]
-            from_y = MAX_CONCURRENT_REQUESTS*[from_pc['y']]
+            from_x = from_pc['x']
+            from_y = from_pc['y']
 
-            haversine_distances = data.apply(lambda x: haversine(lon1=from_pc['x'], lat1=from_pc['y'],
+            haversine_distances = data.apply(lambda x: haversine(lon1=from_x, lat1=from_y,
                                                                  lon2=x['x'], lat2=x['y']),
                                              axis=1)
 
             within_distance = haversine_distances <= max_haversine_distance
-
+            nrequests += sum(within_distance)
             for chunk in np.array_split(data[within_distance], 1 + sum(within_distance)//MAX_CONCURRENT_REQUESTS):
                 to_x = chunk['x'].values
                 to_y = chunk['y'].values
 
-                # CHECK: input order is output order?
                 distances = multi_threaded_requests(from_x, from_y, to_x, to_y, dry_run, verbose)
 
                 chunk['postcode_from'] = from_pc['postcode']
@@ -129,4 +128,4 @@ if __name__ == '__main__':
 
     data = get_pairs(input_file)
 
-    geodan_bulk(data, output_file, max_haversine_distance=1, dry_run=False, verbose=False)
+    geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=False)
