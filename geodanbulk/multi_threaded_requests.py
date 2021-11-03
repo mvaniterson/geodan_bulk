@@ -5,7 +5,7 @@ from geodanbulk.single_request import single_request
 
 
 MAX_CONCURRENT_REQUESTS = 10
-TIMEOUT = 10
+TIMEOUT = 20
 
 
 # -- Configure logger

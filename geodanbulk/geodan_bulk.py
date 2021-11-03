@@ -6,6 +6,7 @@ from math import radians, cos, sin, asin, sqrt
 from csv import writer
 from geodanbulk.multi_threaded_requests import multi_threaded_requests, MAX_CONCURRENT_REQUESTS
 
+PROGRESS_EVERY_N = 100
 
 def haversine(lon1, lat1, lon2, lat2):
     """
@@ -68,18 +69,26 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
     header = ['postcode_from', 'postcode_to',
               'travel_distance', 'travel_time']
 
+
     # open file if exists overwrite and add header
     with open(output_file, 'w', newline='') as file_object:
         writer_object = writer(file_object)
         writer_object.writerow(header)
 
+    start_total = timeit.default_timer()
     start = timeit.default_timer()
 
     # open file append rows
     with open(output_file, 'a', newline='') as file_object:
         writer_object = writer(file_object)
 
-        for _, from_pc in data.iterrows():
+        for i, from_pc in data.iterrows():
+
+            if (i % PROGRESS_EVERY_N) == 0 and i > 0:
+                stop = timeit.default_timer()
+                print(f"iteration {i-PROGRESS_EVERY_N} - {i} took {stop - start:.4f} seconds.")
+                start = timeit.default_timer()
+
             from_x = MAX_CONCURRENT_REQUESTS*[from_pc['x']]
             from_y = MAX_CONCURRENT_REQUESTS*[from_pc['y']]
 
@@ -106,8 +115,8 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
             
         file_object.close()
 
-    stop = timeit.default_timer()
-    execution_time = stop - start
+    stop_total = timeit.default_timer()
+    execution_time = stop_total - start_total
     print("Program Executed in " + str(execution_time) + " seconds.")
 
     return output_file
@@ -120,4 +129,4 @@ if __name__ == '__main__':
 
     data = get_pairs(input_file)
 
-    geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=False, verbose=False)
+    geodan_bulk(data, output_file, max_haversine_distance=1, dry_run=False, verbose=False)
