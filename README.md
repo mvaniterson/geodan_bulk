@@ -36,9 +36,6 @@ Current implementation with maximal 10 concurrent requests can handle around 14 
 |  80533 |  5 | 1.5h |
 
 
-https://pgrouting.org/
-
-
 *Table 2*: Obtain travel distances for pc5 (33317 distinct) pairs that are maximally separated with a certain distance:
 
 | Number of pairs | distance (km) | Estimated execution time |
