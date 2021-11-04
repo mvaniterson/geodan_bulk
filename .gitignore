@@ -1,5 +1,7 @@
 
-data/travel_distances.csv
+# exclude data from repo!
+data/*_travel_distances.csv
+data/PC5Zwaartepunt.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -2,6 +2,7 @@ import timeit
 import pandas as pd
 import numpy as np
 
+from pyproj import Transformer
 from math import radians, cos, sin, asin, sqrt
 from csv import writer
 from geodanbulk.multi_threaded_requests import multi_threaded_requests, MAX_CONCURRENT_REQUESTS
@@ -26,7 +27,7 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 
-def get_data(file, pc='postcode', x= 'longitude', y='latitude'):
+def get_data_pc4(file, pc='postcode', x= 'longitude', y='latitude'):
     """Prepare data
 
     NOTE: Geodan API use x/y as lon/lat
@@ -47,6 +48,36 @@ def get_data(file, pc='postcode', x= 'longitude', y='latitude'):
     data = data[[pc, x, y]]
     data.columns = ['postcode', 'x', 'y']
     return data
+
+
+def get_data_pc5(file, pc='PC5CODE', x='X_RD', y='Y_RD'):
+    """Prepare data
+
+    NOTE: Geodan API use x/y as lon/lat
+    Args:
+        file (str): file containing postcode, longitude and latitude
+        pc (str, optional): Postcode column name. Defaults to 'postcode'.
+        x (str, optional): longitude column name. Defaults to 'longitude' i.e. 4.9 .
+        y (str, optional): latitude column name. Defaults to 'latitude', i.e. 52.3 .
+
+    Returns:
+        pd.DataFrame: DataFrame
+    """
+
+    dtypes = {pc: str, x: np.float64, y: np.float64}
+    data = pd.read_excel(file, usecols=[pc, x, y], dtype=dtypes, engine='openpyxl')
+
+    # reorder if necessary
+    data = data[[pc, x, y]]
+    data.columns = ['postcode', 'x', 'y']
+
+    # transfrom RD -> lon/lat
+    # x->y?
+    transformer = Transformer.from_crs('epsg:28992', "EPSG:4326")
+    data[['y', 'x']] = data.apply(lambda row: transformer.transform(row['x'], row['y']), axis=1, result_type='expand')
+
+    return data
+
 
 
 def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verbose=True):
@@ -119,9 +150,15 @@ def geodan_bulk(data, output_file, max_haversine_distance=10, dry_run=True, verb
 
 if __name__ == '__main__':
 
-    input_file = '../data/pc4.csv'
-    output_file = '../data/travel_distances.csv'
+    # input_file = '../data/pc4.csv'
+    # output_file = '../data/pc4_travel_distances.csv'
+    #
+    # data = get_data_pc4(input_file)
+    #
+    # geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=False, verbose=False)
 
-    data = get_data(input_file)
+    input_file = '../data/PC5Zwaartepunt.xlsx'
+    output_file = '../data/pc5_travel_distances.csv'
 
-    geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=False, verbose=False)
+    data = get_data_pc5(input_file)
+    geodan_bulk(data, output_file, max_haversine_distance=2, dry_run=False, verbose=False)

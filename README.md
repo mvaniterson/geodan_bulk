@@ -18,6 +18,9 @@ data = get_data(input_file)
 geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=False)`
 ``` 
 
+Current implementation with maximal 10 concurrent requests can handle around 14 requests/second!
+
+
 *Table 1*: Obtain travel distances for pc4 (4699 distinct) pairs that are maximally separated with a certain distance:
 
 | Number of pairs | distance (km) | Estimated execution time |
@@ -26,11 +29,11 @@ geodan_bulk(data, output_file, max_haversine_distance=5, dry_run=True, verbose=F
 |  80533 |  5 | 1.5h |
 
 
-*Table 2*: Obtain travel distances for pc5 (333180 distinct) pairs that are maximally separated with a certain distance:
+*Table 2*: Obtain travel distances for pc5 (33317 distinct) pairs that are maximally separated with a certain distance:
 
 | Number of pairs | distance (km) | Estimated execution time |
 |--------|--------|--------|
-| 333180 | 2 | >6h |
+| 33317x50 | 2 | >24h |
 
 
 
